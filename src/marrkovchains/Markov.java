@@ -4,6 +4,7 @@ import au.com.bytecode.opencsv.CSVWriter;
 import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
 
 /**
  *
@@ -13,8 +14,12 @@ public class Markov {
     protected static Markov instance = null;
     protected FileHelper fh;
     
-    protected int[][] _occurances = new int[676][26]; 
+    protected int[][] _occurances = new int[676][26];
+    protected int[] _sums = new int[676]; 
     protected double[][] _probability = new double[676][26];
+    
+    protected String VOWELS = "aeiou";
+    protected Random r = new Random();
         
     protected Markov() {
         fh = FileHelper.getInstance();
@@ -36,10 +41,7 @@ public class Markov {
      */
     public static void main(String[] args) {
         instance = getInstance(); 
-        
-        //int a = (int) ('z' - 97);
-        //System.out.println(a);
-        
+                
         if(args.length > 0) {
             boolean parsed = instance.parseText(args[0]);
                         
@@ -55,11 +57,18 @@ public class Markov {
                     System.exit(0);
                 }
                
-               if(args.length > 1) {
-                   String process[] = args[1].split("\\s");
-                   if(process.length % 2 == 0) {
-                        
-                   }
+                if(args.length > 1) {
+                    String process[] = args[1].split("\\s");
+                    data = instance.generateWords(process);
+                    try {
+                        CSVWriter writer = new CSVWriter(new FileWriter("output-words.csv"));
+                        writer.writeAll(data);
+                        writer.close();
+                    } catch(java.io.IOException err) {
+                        System.out.println("Output File Could not be written:");
+                        System.out.println("----"+err);
+                        System.exit(0);
+                    }
                }         
             }
         } else {
@@ -94,6 +103,47 @@ public class Markov {
         return data;
     }
     
+    protected ArrayList<String[]> generateWords(String[] process) {
+        ArrayList<String[]> data = new ArrayList<String[]>();
+        if(process.length % 2 == 0) {
+            for(int x = 0; x < process.length; x+=2) {
+                int target = Integer.parseInt(process[x+1]);
+                StringBuilder sb = new StringBuilder();
+                sb.append(process[x]);
+                String stopped = " ";
+                
+                for(int y = 2; y < target; y++) {
+                    int a = (int) (sb.charAt(y-2) - 'a');
+                    int b = (int) (sb.charAt(y-1) - 'a');
+                    int occ = this._sums[a*26+b];
+                    
+                    if(occ == 0) {
+                        stopped = "stopped early!";
+                        //sb.append(this.VOWELS.charAt(this.r.nextInt( this.VOWELS.length() )));
+                        break;
+                    } else {
+                        double sel = this.r.nextDouble();
+                        double total = 0;
+                        
+                        for(int z = 0; z < this._probability[a*26+b].length; z++) {
+                            total += this._probability[a*26+b][z];
+                            if(sel <= total) {
+                                sb.append( (char) (97 + z) );
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                data.add(new String[] {process[x],process[x+1],sb.toString(),stopped});
+            }
+        } else {
+           System.out.println("Invalid Generation: Each character selection MUST include a word length.");
+        }
+        
+        return data;
+    }
+    
     protected boolean parseText(String _path) {
         String s = fh.Load(_path);
         
@@ -118,19 +168,15 @@ public class Markov {
                     int c = (int) (chars[x+2] - 'a');
                     
                     this._occurances[a*26+b][c] += 1;
+                    this._sums[a*26+b] += 1;
                 }             
             }
             
             //Probabilities
             for (int x = 0; x < this._occurances.length; x++) {
-                int total = 0;
-                for(int y = 0; y < this._occurances[x].length; y++) {
-                    total += this._occurances[x][y];
-                }
-                
-                if(total != 0) {
+                if(this._sums[x] != 0) {
                     for(int y = 0; y < this._occurances[x].length; y++) {
-                        this._probability[x][y] = (double) this._occurances[x][y] / total;
+                        this._probability[x][y] = (double) this._occurances[x][y] / this._sums[x];
                     }
                 } else {
                     Arrays.fill(this._probability[x], 0.0);
@@ -142,5 +188,4 @@ public class Markov {
         
         return false;
     }
-    
 }

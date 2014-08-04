@@ -60,9 +60,4 @@ public class FileHelper {
         
         return s;
     }
-    
-    public boolean Save(String saveText, String filename) {
-        
-        return false;
-    }
 }

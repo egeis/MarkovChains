@@ -110,7 +110,6 @@ public class Markov {
                 int target = Integer.parseInt(process[x+1]);
                 StringBuilder sb = new StringBuilder();
                 sb.append(process[x]);
-                String stopped = " ";
                 
                 for(int y = 2; y < target; y++) {
                     int a = (int) (sb.charAt(y-2) - 'a');
@@ -118,8 +117,7 @@ public class Markov {
                     int occ = this._sums[a*26+b];
                     
                     if(occ == 0) {
-                        stopped = "stopped early!";
-                        //sb.append(this.VOWELS.charAt(this.r.nextInt( this.VOWELS.length() )));
+                        sb.append(this.VOWELS.charAt(this.r.nextInt( this.VOWELS.length() )));
                         break;
                     } else {
                         double sel = this.r.nextDouble();
@@ -135,7 +133,7 @@ public class Markov {
                     }
                 }
                 
-                data.add(new String[] {process[x],process[x+1],sb.toString(),stopped});
+                data.add(new String[] {process[x],process[x+1],sb.toString()});
             }
         } else {
            System.out.println("Invalid Generation: Each character selection MUST include a word length.");
